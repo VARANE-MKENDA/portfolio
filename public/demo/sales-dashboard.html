@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sales Performance Dashboard | Privance Ulirki</title>
+<meta name="description" content="Interactive sales performance dashboard — revenue, profit, and quantity across products, categories, and payment modes, with year and month-level drill-down." />
+<script src="./chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0A0F1D;
+    --bg-alt: #0D1424;
+    --surface: #121A2E;
+    --surface-hover: #16203A;
+    --border: #22304A;
+    --accent: #3B82F6;
+    --accent-dark: #2563EB;
+    --heading: #F8FAFC;
+    --body: #AEB9CC;
+    --muted: #7C8AA3;
+    --green: #22C55E;
+    --red: #EF4444;
+    --amber: #F59E0B;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--body);
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+  .backlink {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 22px;
+  }
+  .backlink:hover { color: var(--heading); }
+  header.page-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+  .title-block .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+  .title-block h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--heading);
+    margin: 0 0 4px;
+  }
+  .title-block p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 520px;
+  }
+  .filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .filters label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--heading);
+    font-size: 13px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    min-width: 130px;
+    font-family: inherit;
+  }
+  select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .kpi-card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+  .kpi-card .value {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--heading);
+    margin: 0;
+  }
+  .kpi-card .value.green { color: var(--green); }
+  .kpi-card .delta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .grid.two { grid-template-columns: 1fr 1fr; }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .panel h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 14px;
+    font-weight: 600;
+  }
+  .chart-box { position: relative; height: 260px; }
+  .chart-box.tall { height: 300px; }
+
+  .insight-strip {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .insight-pill {
+    flex: 1;
+    min-width: 220px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 12px;
+    color: var(--body);
+  }
+  .insight-pill b { color: var(--heading); }
+
+  footer.note {
+    margin-top: 26px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid, .grid.two { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="backlink" href="/">&larr; Back to portfolio</a>
+
+    <header class="page-head">
+      <div class="title-block">
+        <p class="eyebrow">Live demo &middot; sample data</p>
+        <h1>Sales Performance Dashboard</h1>
+        <p>Revenue, quantity, and profit across products, categories, and payment modes — with year and month-level filtering for drill-down analysis.</p>
+      </div>
+      <div class="filters">
+        <label>Year
+          <select id="yearFilter">
+            <option value="all">All years</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+          </select>
+        </label>
+        <label>Month
+          <select id="monthFilter">
+            <option value="all">All months</option>
+          </select>
+        </label>
+        <label>Category
+          <select id="categoryFilter">
+            <option value="all">All categories</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <p class="label">Total Sales</p>
+        <p class="value" id="kpiSales">—</p>
+      </div>
+      <div class="kpi-card">
+        <p class="label">Total Quantity</p>
+        <p class="value" id="kpiQty">—</p>
+      </div>
+      <div class="kpi-card">
+        <p class="label">Total Profit</p>
+        <p class="value" id="kpiProfit">—</p>
+      </div>
+      <div class="kpi-card">
+        <p class="label">Profit Margin</p>
+        <p class="value green" id="kpiMargin">—</p>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h3>Sales &amp; Profit by Month</h3>
+        <div class="chart-box tall"><canvas id="monthChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Sales by Payment Mode</h3>
+        <div class="chart-box tall"><canvas id="paymentChart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="grid two">
+      <div class="panel">
+        <h3>Sales by Product</h3>
+        <div class="chart-box"><canvas id="productChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Sales by Category</h3>
+        <div class="chart-box"><canvas id="categoryChart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="insight-strip">
+      <div class="insight-pill" id="insightTop">Loading insight…</div>
+      <div class="insight-pill" id="insightPayment">Loading insight…</div>
+      <div class="insight-pill" id="insightMonth">Loading insight…</div>
+    </section>
+
+    <footer class="note">
+      Sample dataset generated for demonstration purposes — built to mirror a real Power BI drill-down dashboard workflow (Python-generated data, rendered here with Chart.js).
+    </footer>
+  </div>
+
+<script>
+// ---------- Deterministic pseudo-random generator (seeded, reproducible) ----------
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rand = mulberry32(20260909);
+
+// ---------- Product catalog (matches the real dashboard's product mix) ----------
+const PRODUCTS = [
+  { name: "Carpet Roll",      category: "Category01", weight: 1.9, price: 42, margin: 0.17 },
+  { name: "Rubber Mat",       category: "Category01", weight: 1.7, price: 28, margin: 0.15 },
+  { name: "Plastic Mat",      category: "Category02", weight: 1.6, price: 19, margin: 0.13 },
+  { name: "Cotton Fabric",    category: "Category05", weight: 0.85, price: 28, margin: 0.16 },
+  { name: "Silk Fabric",      category: "Category02", weight: 0.9,  price: 22, margin: 0.21 },
+  { name: "Groundnut Oil",    category: "Category03", weight: 1.0, price: 12, margin: 0.09 },
+  { name: "Urad Dal",         category: "Category04", weight: 0.8, price: 14, margin: 0.10 },
+  { name: "Turmeric Powder",  category: "Category03", weight: 0.9, price: 8,  margin: 0.11 },
+];
+const PAYMENT_MODES = [
+  { name: "Cash", share: 0.48 },
+  { name: "Online / UPI", share: 0.52 },
+];
+const YEARS = [2024, 2025];
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+// mild seasonality curve, index 0 = Jan
+const SEASON = [0.85, 0.82, 0.9, 0.95, 1.0, 1.05, 0.95, 1.0, 1.1, 1.15, 1.25, 1.3];
+
+// ---------- Generate synthetic transaction-level rows ----------
+const rows = [];
+YEARS.forEach((year, yi) => {
+  const yearFactor = 1 + yi * 0.12; // 2025 slightly higher than 2024
+  MONTH_NAMES.forEach((_, mi) => {
+    PRODUCTS.forEach((p) => {
+      // a handful of transactions per product per month
+      const txCount = 3 + Math.floor(rand() * 3);
+      for (let t = 0; t < txCount; t++) {
+        const noise = 0.75 + rand() * 0.5;
+        const qty = Math.max(1, Math.round(p.weight * 18 * SEASON[mi] * yearFactor * noise));
+        const sales = Math.round(qty * p.price * (0.95 + rand() * 0.1));
+        const profit = Math.round(sales * p.margin * (0.9 + rand() * 0.2));
+        const mode = rand() < PAYMENT_MODES[0].share ? PAYMENT_MODES[0].name : PAYMENT_MODES[1].name;
+        rows.push({
+          year, month: mi, product: p.name, category: p.category,
+          paymentMode: mode, sales, profit, qty,
+        });
+      }
+    });
+  });
+});
+
+// ---------- Populate filter dropdowns ----------
+const monthSelect = document.getElementById("monthFilter");
+MONTH_NAMES.forEach((m, i) => {
+  const opt = document.createElement("option");
+  opt.value = i; opt.textContent = m;
+  monthSelect.appendChild(opt);
+});
+const categorySelect = document.getElementById("categoryFilter");
+[...new Set(PRODUCTS.map(p => p.category))].sort().forEach((c) => {
+  const opt = document.createElement("option");
+  opt.value = c; opt.textContent = c;
+  categorySelect.appendChild(opt);
+});
+
+// ---------- Formatting helpers ----------
+const fmtMoney = (n) => "$" + Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(n);
+const fmtNum = (n) => Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+
+// ---------- Chart.js global defaults to match dashboard theme ----------
+Chart.defaults.color = "#AEB9CC";
+Chart.defaults.borderColor = "#22304A";
+Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+
+const COLORS = ["#3B82F6", "#22C55E", "#F59E0B", "#8B5CF6", "#EF4444", "#06B6D4", "#EC4899", "#84CC16"];
+
+let monthChart, paymentChart, productChart, categoryChart;
+
+function buildCharts() {
+  const monthCtx = document.getElementById("monthChart");
+  monthChart = new Chart(monthCtx, {
+    data: {
+      labels: MONTH_NAMES,
+      datasets: [
+        { type: "bar", label: "Sales", data: [], backgroundColor: "rgba(59,130,246,0.55)", borderRadius: 4, order: 2, yAxisID: "y" },
+        { type: "line", label: "Profit", data: [], borderColor: "#22C55E", backgroundColor: "#22C55E", tension: 0.35, pointRadius: 2, order: 1, yAxisID: "y" },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        y: { grid: { color: "#1B2740" }, ticks: { callback: (v) => fmtMoney(v) } },
+        x: { grid: { display: false } },
+      },
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 10, padding: 14 } } },
+    },
+  });
+
+  paymentChart = new Chart(document.getElementById("paymentChart"), {
+    type: "doughnut",
+    data: { labels: [], datasets: [{ data: [], backgroundColor: COLORS, borderColor: "#121A2E", borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "62%",
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 10, padding: 14 } } },
+    },
+  });
+
+  productChart = new Chart(document.getElementById("productChart"), {
+    type: "bar",
+    data: { labels: [], datasets: [{ label: "Sales", data: [], backgroundColor: "#3B82F6", borderRadius: 4 }] },
+    options: {
+      indexAxis: "y", responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { color: "#1B2740" }, ticks: { callback: (v) => fmtMoney(v) } },
+        y: { grid: { display: false } },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+
+  categoryChart = new Chart(document.getElementById("categoryChart"), {
+    type: "doughnut",
+    data: { labels: [], datasets: [{ data: [], backgroundColor: COLORS, borderColor: "#121A2E", borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "55%",
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 10, padding: 14 } } },
+    },
+  });
+}
+
+// ---------- Filtering + aggregation ----------
+function getFiltered() {
+  const year = document.getElementById("yearFilter").value;
+  const month = document.getElementById("monthFilter").value;
+  const category = document.getElementById("categoryFilter").value;
+  return rows.filter((r) =>
+    (year === "all" || r.year === Number(year)) &&
+    (month === "all" || r.month === Number(month)) &&
+    (category === "all" || r.category === category)
+  );
+}
+
+function render() {
+  const data = getFiltered();
+
+  const totalSales = data.reduce((s, r) => s + r.sales, 0);
+  const totalProfit = data.reduce((s, r) => s + r.profit, 0);
+  const totalQty = data.reduce((s, r) => s + r.qty, 0);
+  const margin = totalSales ? (totalProfit / totalSales) * 100 : 0;
+
+  document.getElementById("kpiSales").textContent = fmtMoney(totalSales);
+  document.getElementById("kpiQty").textContent = fmtNum(totalQty);
+  document.getElementById("kpiProfit").textContent = fmtMoney(totalProfit);
+  document.getElementById("kpiMargin").textContent = margin.toFixed(1) + "%";
+
+  // Month chart: aggregate by month (sum across years if "all")
+  const byMonth = MONTH_NAMES.map((_, mi) => {
+    const rowsForMonth = data.filter((r) => r.month === mi);
+    return {
+      sales: rowsForMonth.reduce((s, r) => s + r.sales, 0),
+      profit: rowsForMonth.reduce((s, r) => s + r.profit, 0),
+    };
+  });
+  monthChart.data.datasets[0].data = byMonth.map((m) => m.sales);
+  monthChart.data.datasets[1].data = byMonth.map((m) => m.profit);
+  monthChart.update();
+
+  // Payment mode chart
+  const byPayment = {};
+  data.forEach((r) => { byPayment[r.paymentMode] = (byPayment[r.paymentMode] || 0) + r.sales; });
+  paymentChart.data.labels = Object.keys(byPayment);
+  paymentChart.data.datasets[0].data = Object.values(byPayment);
+  paymentChart.update();
+
+  // Product chart (top 8, sorted desc)
+  const byProduct = {};
+  data.forEach((r) => { byProduct[r.product] = (byProduct[r.product] || 0) + r.sales; });
+  const sortedProducts = Object.entries(byProduct).sort((a, b) => b[1] - a[1]);
+  productChart.data.labels = sortedProducts.map((p) => p[0]);
+  productChart.data.datasets[0].data = sortedProducts.map((p) => p[1]);
+  productChart.update();
+
+  // Category chart
+  const byCategory = {};
+  data.forEach((r) => { byCategory[r.category] = (byCategory[r.category] || 0) + r.sales; });
+  const sortedCategories = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
+  categoryChart.data.labels = sortedCategories.map((c) => c[0]);
+  categoryChart.data.datasets[0].data = sortedCategories.map((c) => c[1]);
+  categoryChart.update();
+
+  // Insight strip (recomputed live from the current filter)
+  const topProducts = sortedProducts.slice(0, 3).map((p) => p[0]).join(", ");
+  document.getElementById("insightTop").innerHTML =
+    `<b>${topProducts || "—"}</b> drove the largest share of sales volume in the current view.`;
+
+  const topPayment = Object.entries(byPayment).sort((a, b) => b[1] - a[1])[0];
+  const paymentPct = topPayment ? ((topPayment[1] / totalSales) * 100).toFixed(1) : "0";
+  document.getElementById("insightPayment").innerHTML =
+    topPayment ? `<b>${topPayment[0]}</b> accounts for <b>${paymentPct}%</b> of sales in this view.` : "No data for this filter.";
+
+  const topMonthIdx = byMonth.map((m, i) => [i, m.sales]).sort((a, b) => b[1] - a[1])[0];
+  document.getElementById("insightMonth").innerHTML =
+    topMonthIdx && topMonthIdx[1] > 0
+      ? `<b>${MONTH_NAMES[topMonthIdx[0]]}</b> was the strongest month by sales in this view.`
+      : "No data for this filter.";
+}
+
+buildCharts();
+render();
+["yearFilter", "monthFilter", "categoryFilter"].forEach((id) => {
+  document.getElementById(id).addEventListener("change", render);
+});
+</script>
+</body>
+</html>
